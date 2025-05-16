@@ -3,7 +3,6 @@
     <ul class="flex flex-col rounded-md overflow-hidden gap-3">
         <?php foreach ($params["recipes"] as $recipe): ?>
             <li class="flex flex-row items-center justify-center gap-30 p-3 border-2 border-legno bg-crema overflow-hidden rounded-md">
-                <a href="template/recipe-crud.php?action=update&title=<?php echo $recipe["titolo"] ?>"></a>
                 <div class="flex flex-col items-center justify-center">
                     <p class="underline font-semibold">Titolo</p>
                     <p><?php echo $recipe["titolo"] ?></p>
@@ -20,7 +19,10 @@
                     <p class="underline font-semibold">Costo stimato</p>
                     <p><?php echo "€" . $recipe["costoTotale"]?></p>
                 </div>
-                <a href="" class="border-2 border-legno rounded-md bg-white py-3 px-2">Visualizza ➡️</a>
+                <div class="flex flex-row gap-3">
+                    <a href="<?php echo ROOT . "template/recipe-crud.php?action=update&title=" . $recipe["titolo"] ?>" class="border-2 border-legno rounded-md bg-white py-3 px-2">Modifica ✏️</a>
+                    <a href="" class="border-2 border-legno rounded-md bg-white py-3 px-2">Visualizza ➡️</a>
+                </div>
             </li>
         <?php endforeach; ?>
         <?php

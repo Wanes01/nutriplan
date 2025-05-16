@@ -9,6 +9,35 @@ class DatabaseHelper {
         }        
     }
 
+    public function getRecipeData($nickname, $title) {
+        $data = array();
+        $stmt = $this->db->prepare("
+            SELECT *
+            FROM ricette
+            WHERE nicknameEditore = ?
+            AND titolo = ?
+        ");
+        $stmt->bind_param("ss", $nickname, $title);
+        $stmt->execute();
+        $data["recipe"] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC)[0];
+
+        if (count($data["recipe"]) === 0) {
+            return null;
+        }
+
+        $stmt2 = $this->db->prepare("
+            SELECT nomeIngrediente, quantita
+            FROM utilizzi
+            WHERE nicknameEditore = ?
+            AND titolo = ?
+        ");
+        $stmt2->bind_param("ss", $nickname, $title);
+        $stmt2->execute();
+        $data["ingredients"] = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
+        
+        return $data;
+    }
+
     public function addRecipe($nickname, $title, $public, $preparation, $preparationTime, $portions, $ingredients) {
         $this->db->begin_transaction();
         try {

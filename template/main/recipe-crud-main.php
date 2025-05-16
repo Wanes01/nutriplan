@@ -1,28 +1,31 @@
 <?php
-    
+if (isset($params["recipeData"])) {
+    $recipe = $params["recipeData"]["recipe"];
+    $ingrs = $params["recipeData"]["ingredients"];
+}
 ?>
 
 <div class="flex flex-col justify-center items-center mt-2">
     <form action="<?php echo ROOT . "api/recipe-crud.php" ?>" method="post" class="flex flex-col gap-2 border-2 bg-crema border-legno p-4 rounded-lg w-1/2">
         <div class="flex flex-col gap-1">
             <label for="title">Titolo</label>
-            <input type="text" name="title" id="title" required minlength="3" autocomplete="off" class="p-1 border-1 border-legno rounded-md bg-white" value="" />
+            <input type="text" name="title" id="title" required minlength="3" autocomplete="off" class="p-1 border-1 border-legno rounded-md bg-white" value="<?php echo (isset($recipe) ? $recipe["titolo"] : "") ?>" />
         </div>
         <div class="flex flex-col gap-1">
             <label for="preparation">Preparazione</label>
-            <textarea name="preparation" id="preparation" required minlength="3" autocomplete="off" class="resize-none min-h-70 p-1 border-1 border-legno rounded-md bg-white"></textarea>
+            <textarea name="preparation" id="preparation" required minlength="3" autocomplete="off" class="resize-none min-h-70 p-1 border-1 border-legno rounded-md bg-white"><?php echo (isset($recipe) ? $recipe["preparazione"] : "") ?></textarea>
         </div>
         <div class="flex flex-row justify-between">
             <div class="flex flex-col gap-1">
                 <label for="preparationTime">Tempo di preparazione (minuti)</label>
-                <input type="number" name="preparationTime" id="preparationTime" required min="1" class="p-1 border-1 border-legno rounded-md bg-white" />
+                <input type="number" name="preparationTime" id="preparationTime" required min="1" class="p-1 border-1 border-legno rounded-md bg-white" value="<?php echo (isset($recipe) ? $recipe["tempoPreparazione"] : "") ?>"/>
             </div>
             <div class="flex flex-col gap-1">
                 <label for="portions">Porzioni</label>
-                <input type="number" name="portions" id="portions" required min="1" class="p-1 border-1 border-legno rounded-md bg-white" />
+                <input type="number" name="portions" id="portions" required min="1" class="p-1 border-1 border-legno rounded-md bg-white" value="<?php echo (isset($recipe) ? $recipe["porzioni"] : "") ?>"/>
             </div>
             <div class="flex flex-row justify-center items-center gap-1">
-                <input type="checkbox" name="public" id="public" class="mt-1 w-4 h-4 accent-oliva" class="p-1 border-1 border-legno rounded-md bg-white" />
+                <input type="checkbox" name="public" id="public" class="mt-1 w-4 h-4 accent-oliva" class="p-1 border-1 border-legno rounded-md bg-white" <?php echo (isset($recipe) && $recipe["pubblica"] == 1 ? "checked" : "") ?>/>
                 <label for="public">Pubblica</label>
             </div>
         </div>
@@ -37,7 +40,15 @@
             </div>
             <div class="flex flex-col gap-1">
                 <p>Ingredienti usati</p>
-                <textarea name="usedIngredients" id="usedIngredients" required minlength="3" autocomplete="off" class="resize-none h-60 p-1 border-1 border-legno rounded-md bg-white"></textarea>
+                <textarea name="usedIngredients" id="usedIngredients" required minlength="3" autocomplete="off" class="resize-none h-60 p-1 border-1 border-legno rounded-md bg-white"><?php 
+                    if (isset($ingrs)) {
+                        $str = "";
+                        foreach ($ingrs as $ingr) {
+                            $str .= $ingr["nomeIngrediente"] . "," . $ingr["quantita"] . "\n";
+                        }
+                        echo $str;
+                    }
+                 ?></textarea>
             </div>
         </div>
         <?php

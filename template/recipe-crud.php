@@ -15,7 +15,9 @@ $params = [
     "js" => array("recipe-crud.js")
 ];
 
-//$recipe = $dbh->getRecipeData($nickname, $)
+if (isset($_GET["title"])) {
+    $params["recipeData"] = $dbh->getRecipeData($_SESSION['nickname'], $_GET['title']);
+}
 
 require_once "./base.php";
 ?>
