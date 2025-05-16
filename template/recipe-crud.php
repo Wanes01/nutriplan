@@ -7,16 +7,15 @@ if (!isset($_SESSION['nickname'])) {
 }
 
 $params = [
-    "title" => "Home | NutriPlan",
-    "main" => "./main/" . $_SESSION['role'] . "-home-main.php",
+    "title" => "Ricetta | NutriPlan",
+    "main" => "./main/recipe-crud-main.php",
     "header" => "./header/" . $_SESSION['role'] . "-header.php",
     "footer" => "./footer/generic-footer.php",
+    "ingredients" => $dbh->getIngredients(),
+    "js" => array("recipe-crud.js")
 ];
 
-if ($_SESSION['role'] === "amministratori") {
-    $params["ingredienti"] = $dbh->getIngredients();
-    $params["js"] = array("admin-home.js");
-}
+//$recipe = $dbh->getRecipeData($nickname, $)
 
 require_once "./base.php";
 ?>

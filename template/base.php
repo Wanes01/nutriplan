@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" class="overscroll-none">
 
 <head>
     <meta charset="UTF-8">
@@ -34,7 +34,7 @@
     <?php
     if (!empty($params["js"])) {
         foreach($params["js"] as $jsScript) {
-            echo '<script src="'. $jsScript .'"></script>';
+            echo '<script src="'. ROOT . "js/" . $jsScript .'"></script>';
         }
     }
     ?>

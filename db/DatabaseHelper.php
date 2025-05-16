@@ -9,6 +9,78 @@ class DatabaseHelper {
         }        
     }
 
+    public function addRecipe($nickname, $title, $public, $preparation, $preparationTime, $portions, $ingredients) {
+        $this->db->begin_transaction();
+        try {
+            // -- 1. Inserimento della ricetta (ponendo a 0 kcalTotali e costoTotale)
+            $stmt1 = $this->db->prepare("
+                INSERT INTO ricette (titolo, nicknameEditore, pubblica, preparazione, porzioni, tempoPreparazione, kcalTotali, costoTotale)
+                VALUES (?, ?, ?, ?, ?, ?, 0, 0);
+            ");
+            $stmt1->bind_param("ssisii", $title, $nickname, $public, $preparation, $portions, $preparationTime);
+            $stmt1->execute();
+            $stmt1->close();
+
+            // -- 2. Inserimento degli ingredienti associati alla ricetta
+            $query = "INSERT INTO utilizzi (nomeIngrediente, titolo, nicknameEditore, quantita) VALUES ";
+            $pms = array();
+            $pTypes = "";
+            for ($i = 0; $i < count($ingredients); $i++) {
+                $query .= "(?, ?, ?, ?)" . ($i < count($ingredients) - 1 ? "," : "");
+                $pTypes .= "sssi";
+                array_push($pms, $ingredients[$i][0], $title, $nickname, $ingredients[$i][1]);
+            }
+            $stmt2 = $this->db->prepare($query);
+            $stmt2->bind_param($pTypes, ...$pms);
+            $stmt2->execute();
+            $stmt2->close();
+
+            // -- 3. Calcolo delle calorie e costo totale
+            $stmt3 = $this->db->prepare("
+                UPDATE ricette
+                SET 
+                    kcalTotali = (
+                        SELECT SUM(I.kcal * (U.quantita / 100))
+                        FROM ingredienti I, utilizzi U
+                        WHERE I.nome = U.nomeIngrediente
+                        AND U.titolo = ricette.titolo
+                        AND U.nicknameEditore = ricette.nicknameEditore
+                    ),
+                    costoTotale = (
+                        SELECT SUM(I.costo * (U.quantita / 100))
+                        FROM ingredienti I, utilizzi U
+                        WHERE I.nome = U.nomeIngrediente
+                        AND U.titolo = ricette.titolo
+                        AND U.nicknameEditore = ricette.nicknameEditore
+                    )
+                WHERE titolo = ? AND nicknameEditore = ?;
+            ");
+            $stmt3->bind_param("ss", $title, $nickname);
+            $stmt3->execute();
+            $stmt3->close();
+
+            $this->db->commit();
+        } catch (Exception $e) {
+            // Qualcosa é andato storto. Ritorno ad uno stato consistente
+            $this->db->rollback();
+            throw new Exception("Uno stesso utente non puó registrare due ricette con lo stesso nome");
+        }
+    }
+
+    public function getUserRecipes($nickname) {
+        $query = "
+            SELECT titolo, pubblica, preparazione, porzioni, tempoPreparazione, kcalTotali, costoTotale
+            FROM ricette
+            WHERE nicknameEditore = ?
+            ";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("s", $nickname);
+        $stmt->execute();
+        
+        $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        return $result;
+    }
+
     public function deleteIngredient($name) {
         $query = "
         DELETE FROM ingredienti
@@ -123,7 +195,7 @@ class DatabaseHelper {
 
             $this->db->commit();
         } catch (Exception $e) {
-            error_log($e->getMessage());
+            //error_log($e->getMessage());
             // Qualcosa é andato storto. Ritorno ad uno stato consistente
             $this->db->rollback();
             throw new Exception("Non esiste un ingrediente con questo nome");

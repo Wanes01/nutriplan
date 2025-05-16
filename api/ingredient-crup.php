@@ -4,7 +4,7 @@ require_once "../bootstrap.php";
 /* aggiunta, modifica ed eliminazione di ingredienti sono azioni
 permesse solo agli amministratori */
 if (!isset($_SESSION["nickname"]) || $_SESSION["role"] != "amministratori") {
-    header("Location: " . ROOT . "template/welcome.php");
+    header("Location: " . ROOT . "index.php");
     return;
 }
 
