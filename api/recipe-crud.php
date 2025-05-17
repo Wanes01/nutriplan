@@ -30,6 +30,8 @@ if (isset($_POST["add"])) {
         $_SESSION["recipeError"] = $e->getMessage();
         header("Location: " . ROOT . "template/recipe-crud.php");
     }
+} else if (isset($_POST["update"])) {
+    var_dump($_POST);
 }
 
 /*

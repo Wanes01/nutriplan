@@ -9,6 +9,60 @@ class DatabaseHelper {
         }        
     }
 
+    public function updateRecipe($nickname, $title, $public, $preparation, $preparationTime, $portions, $ingredients) {
+        "START TRANSACTION;
+
+        -- 1. Rimozione degli ingredienti non più usati
+        DELETE FROM utilizzi
+        WHERE nomeIngrediente IN (?, ?, ..., ?)
+        AND titolo = ?
+        AND nicknameEditore = ?;
+
+        -- 2. Aggiunta dei nuovi ingredienti alla ricetta
+        INSERT INTO utilizzi (nomeIngrediente, titolo, nicknameEditore, quantita)
+        VALUES (?, ?, ?, ?), …, (?, ?, ?, ?);
+
+        -- 3. Ricalcolo delle calorie per la ricetta
+        UPDATE ricette R
+        SET kcalTotali = (
+            SELECT SUM(I.kcal * (U.quantita / 100))
+            FROM ingredienti I, utilizzi U
+                WHERE I.nome = U.nomeIngrediente
+                AND U.titolo = R.titolo
+                AND U.nicknameEditore = R.nicknameEditore
+            ),
+            costoTotale = (
+            SELECT SUM(I.costo * (U.quantita / 100))
+            FROM ingredienti I, utilizzi U
+                WHERE I.nome = U.nomeIngrediente
+                AND U.titolo = R.titolo
+                AND U.nicknameEditore = R.nicknameEditore
+            ),
+            preparazione = ?
+        WHERE titolo = ? AND nicknameEditore = ?;
+
+        -- 4. Ricalcolo delle calorie totali nelle diete che usano la ricetta
+        UPDATE diete D
+        SET kcalDieta = (
+            SELECT SUM(R.kcalTotali / R.porzioni)
+            FROM ricette R, composizioni C
+            WHERE R.titolo = C.titolo
+            AND R.nicknameEditore = C.nicknameEditore
+            AND C.nomeDieta = D.nome
+            AND C.nicknameAutore = D.nicknameAutore
+        ) WHERE EXISTS ( -- solo per le diete che includono la ricetta modificata
+            SELECT *
+            FROM composizioni C
+            WHERE C.nomeDieta = D.nome
+            AND C.nicknameAutore = D.nicknameAutore
+            AND C.titolo = ?
+            AND C.nicknameEditore = ?
+        );
+
+        COMMIT;
+        ";
+    }
+
     public function getRecipeData($nickname, $title) {
         $data = array();
         $stmt = $this->db->prepare("
@@ -228,6 +282,23 @@ class DatabaseHelper {
             // Qualcosa é andato storto. Ritorno ad uno stato consistente
             $this->db->rollback();
             throw new Exception("Non esiste un ingrediente con questo nome");
+        }
+    }
+
+    /* $statements: un array di query a cui é giá stato effettuato il binding dei parametri
+    Esegue tutte le query presenti in statements dentro una transazione. In caso di errore
+    effettua il rollback e ritorna l'errore riscontrato */
+    private function transactionExecuter($statements) {
+        $this->db->begin_transaction();
+        try {
+            foreach ($statements as $stmt) {
+                $stmt->execute();
+                $stmt->close();
+            }
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+            throw new Exception($e->getMessage());
         }
     }
 
