@@ -9,66 +9,175 @@ class DatabaseHelper {
         }        
     }
 
-    public function updateRecipe($nickname, $title, $public, $preparation, $preparationTime, $portions, $ingredients) {
-        "START TRANSACTION;
+    public function getRandomRecipes($limit) {
+        $stmt = $this->db->prepare("
+            SELECT R.*, U.accreditato
+            FROM ricette R, utenti U
+            WHERE R.nicknameEditore = U.nickname 
+            ORDER BY RAND()
+            LIMIT ?
+        ");
+        $stmt->bind_param("i", $limit);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 
-        -- 1. Rimozione degli ingredienti non più usati
-        DELETE FROM utilizzi
-        WHERE nomeIngrediente IN (?, ?, ..., ?)
-        AND titolo = ?
-        AND nicknameEditore = ?;
+    public function deleteRecipe($nickname, $title) {
+        $this->db->begin_transaction();
+        try {
+            // -- 1. Creazione di una tabella temporanea per salvare le diete che utilizzano la ricetta prima che questa venga eliminata
+            $stmt1 = $this->db->prepare("
+                CREATE TEMPORARY TABLE aggiornabili AS
+                SELECT C.nomeDieta, C.nicknameAutore
+                FROM composizioni C
+                WHERE C.titolo = ?
+                AND C.nicknameEditore = ?"
+            );
+            $stmt1->bind_param("ss", $title, $nickname);
+            $stmt1->execute();
+            $stmt1->close();
 
-        -- 2. Aggiunta dei nuovi ingredienti alla ricetta
-        INSERT INTO utilizzi (nomeIngrediente, titolo, nicknameEditore, quantita)
-        VALUES (?, ?, ?, ?), …, (?, ?, ?, ?);
+            // -- 2. Eliminazione della ricetta solo se non ha commenti
+            $stmt2 = $this->db->prepare("
+                DELETE FROM ricette 
+                WHERE titolo = ?
+                AND nicknameEditore = ?
+                AND NOT EXISTS (
+                    SELECT *
+                    FROM valutazioni V
+                    WHERE V.titolo = ?
+                    AND V.nicknameEditore = ?
+                    AND V.commento IS NOT NULL
+                )"
+            );
+            $stmt2->bind_param("ssss", $title, $nickname, $title, $nickname);
+            $stmt2->execute();
 
-        -- 3. Ricalcolo delle calorie per la ricetta
-        UPDATE ricette R
-        SET kcalTotali = (
-            SELECT SUM(I.kcal * (U.quantita / 100))
-            FROM ingredienti I, utilizzi U
-                WHERE I.nome = U.nomeIngrediente
-                AND U.titolo = R.titolo
-                AND U.nicknameEditore = R.nicknameEditore
-            ),
-            costoTotale = (
-            SELECT SUM(I.costo * (U.quantita / 100))
-            FROM ingredienti I, utilizzi U
-                WHERE I.nome = U.nomeIngrediente
-                AND U.titolo = R.titolo
-                AND U.nicknameEditore = R.nicknameEditore
-            ),
-            preparazione = ?
-        WHERE titolo = ? AND nicknameEditore = ?;
+            // Non é avvenuta nessuna eliminazione
+            if ($stmt2->affected_rows == 0) {
+                throw new Exception("Non é possibile eliminare una ricetta che ha ricevuto comementi.");
+            }
+            $stmt2->close();
 
-        -- 4. Ricalcolo delle calorie totali nelle diete che usano la ricetta
-        UPDATE diete D
-        SET kcalDieta = (
-            SELECT SUM(R.kcalTotali / R.porzioni)
-            FROM ricette R, composizioni C
-            WHERE R.titolo = C.titolo
-            AND R.nicknameEditore = C.nicknameEditore
-            AND C.nomeDieta = D.nome
-            AND C.nicknameAutore = D.nicknameAutore
-        ) WHERE EXISTS ( -- solo per le diete che includono la ricetta modificata
-            SELECT *
-            FROM composizioni C
-            WHERE C.nomeDieta = D.nome
-            AND C.nicknameAutore = D.nicknameAutore
-            AND C.titolo = ?
-            AND C.nicknameEditore = ?
-        );
+            // -- 3. Aggiornamento delle kcal delle diete che usavano la ricetta
+            $this->db->query("
+                UPDATE diete D
+                SET kcalDieta = (
+                    SELECT SUM(R.kcalTotali / R.porzioni)
+                    FROM ricette R, composizioni C
+                    WHERE R.titolo = C.titolo
+                    AND R.nicknameEditore = C.nicknameEditore
+                    AND C.nomeDieta = D.nome
+                    AND C.nicknameAutore = D.nicknameAutore
+                ) WHERE EXISTS (
+                    SELECT *
+                    FROM aggiornabili A
+                    WHERE A.nomeDieta = D.nome
+                    AND A.nicknameAutore = D.nicknameAutore
+                )"
+            );
 
-        COMMIT;
-        ";
+            // -- 4. Eliminazione della tabella temporanea
+            $this->db->query("DROP TEMPORARY TABLE aggiornabili");
+
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateRecipe($nickname, $oldTitle, $title, $public, $preparation, $preparationTime, $portions, $ingredients) {
+        $this->db->begin_transaction();
+        try {
+            // -- 1. Rimozione degli ingredienti attualmente in uso
+            $stmt1 = $this->db->prepare("
+                DELETE FROM utilizzi
+                WHERE titolo = ?
+                AND nicknameEditore = ?"
+            );
+            $stmt1->bind_param("ss", $oldTitle, $nickname);
+            $stmt1->execute();
+            $stmt1->close();
+
+            // -- 2. Aggiunta dei nuovi ingredienti alla ricetta
+            $query = "INSERT INTO utilizzi (nomeIngrediente, titolo, nicknameEditore, quantita) VALUES ";
+            $pms = array();
+            $pTypes = "";
+            for ($i = 0; $i < count($ingredients); $i++) {
+                $query .= "(?, ?, ?, ?)" . ($i < count($ingredients) - 1 ? "," : "");
+                $pTypes .= "sssi";
+                array_push($pms, $ingredients[$i][0], $oldTitle, $nickname, $ingredients[$i][1]);
+            }
+            $stmt2 = $this->db->prepare($query);
+            $stmt2->bind_param($pTypes, ...$pms);
+            $stmt2->execute();
+            $stmt2->close();
+
+            // -- 3. Ricalcolo delle calorie per la ricetta e aggiornamento degli attributi semplici
+            $stmt3 = $this->db->prepare("
+                UPDATE ricette R
+                SET kcalTotali = (
+                    SELECT SUM(I.kcal * (U.quantita / 100))
+                    FROM ingredienti I, utilizzi U
+                        WHERE I.nome = U.nomeIngrediente
+                        AND U.titolo = R.titolo
+                        AND U.nicknameEditore = R.nicknameEditore
+                    ),
+                    costoTotale = (
+                    SELECT SUM(I.costo * (U.quantita / 100))
+                    FROM ingredienti I, utilizzi U
+                        WHERE I.nome = U.nomeIngrediente
+                        AND U.titolo = R.titolo
+                        AND U.nicknameEditore = R.nicknameEditore
+                    ),
+                    titolo = ?,
+                    preparazione = ?,
+                    tempoPreparazione = ?,
+                    porzioni = ?,
+                    pubblica = ?
+                WHERE titolo = ? AND nicknameEditore = ?
+            ");
+            $stmt3->bind_param("ssiiiss", $title, $preparation, $preparationTime, $portions, $public, $oldTitle, $nickname);
+            $stmt3->execute();
+            $stmt3->close();
+
+            // -- 4. Ricalcolo delle calorie totali nelle diete che usano la ricetta
+            $stmt4 = $this->db->prepare("
+                UPDATE diete D
+                SET kcalDieta = (
+                    SELECT SUM(R.kcalTotali / R.porzioni)
+                    FROM ricette R, composizioni C
+                    WHERE R.titolo = C.titolo
+                    AND R.nicknameEditore = C.nicknameEditore
+                    AND C.nomeDieta = D.nome
+                    AND C.nicknameAutore = D.nicknameAutore
+                ) WHERE EXISTS ( -- solo per le diete che includono la ricetta modificata
+                    SELECT *
+                    FROM composizioni C
+                    WHERE C.nomeDieta = D.nome
+                    AND C.nicknameAutore = D.nicknameAutore
+                    AND C.titolo = ?
+                    AND C.nicknameEditore = ?)
+            ");
+            $stmt4->bind_param("ss", $title, $nickname);
+            $stmt4->execute();
+            $stmt4->close();
+
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+            throw new Exception($e->getMessage());
+        }
     }
 
     public function getRecipeData($nickname, $title) {
         $data = array();
         $stmt = $this->db->prepare("
-            SELECT *
-            FROM ricette
-            WHERE nicknameEditore = ?
+            SELECT R.*, U.accreditato
+            FROM ricette R, utenti U
+            WHERE R.nicknameEditore = U.nickname
+            AND nicknameEditore = ?
             AND titolo = ?
         ");
         $stmt->bind_param("ss", $nickname, $title);
@@ -80,9 +189,10 @@ class DatabaseHelper {
         }
 
         $stmt2 = $this->db->prepare("
-            SELECT nomeIngrediente, quantita
-            FROM utilizzi
-            WHERE nicknameEditore = ?
+            SELECT U.nomeIngrediente, U.quantita, I.unitaMisura
+            FROM utilizzi U, ingredienti I
+            WHERE U.nomeIngrediente = I.nome
+            AND nicknameEditore = ?
             AND titolo = ?
         ");
         $stmt2->bind_param("ss", $nickname, $title);
@@ -282,23 +392,6 @@ class DatabaseHelper {
             // Qualcosa é andato storto. Ritorno ad uno stato consistente
             $this->db->rollback();
             throw new Exception("Non esiste un ingrediente con questo nome");
-        }
-    }
-
-    /* $statements: un array di query a cui é giá stato effettuato il binding dei parametri
-    Esegue tutte le query presenti in statements dentro una transazione. In caso di errore
-    effettua il rollback e ritorna l'errore riscontrato */
-    private function transactionExecuter($statements) {
-        $this->db->begin_transaction();
-        try {
-            foreach ($statements as $stmt) {
-                $stmt->execute();
-                $stmt->close();
-            }
-            $this->db->commit();
-        } catch (Exception $e) {
-            $this->db->rollback();
-            throw new Exception($e->getMessage());
         }
     }
 

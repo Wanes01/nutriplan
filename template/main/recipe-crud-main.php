@@ -62,7 +62,10 @@ if (isset($params["recipeData"])) {
             if ($_GET["action"] == "add") {
                 echo '<input type="submit" name="add" value="Aggiungi ricetta" class="border-2 border-green-700 text-green-700 bg-white px-3 py-2 rounded-md font-semibold cursor-pointer"/>';
             } else {
-                echo '<input type="submit" name="update" value="Modifica ricetta" class="border-2 border-legno text-orange-900 bg-white px-3 py-2 rounded-md font-semibold cursor-pointer" />';
+                echo '<div class="flex flex-col justify-center items-center gap-2">
+                <input type="submit" name="update" value="Modifica ricetta" class="border-2 border-legno text-orange-900 bg-white px-3 py-2 rounded-md font-semibold cursor-pointer" />
+                <p class="underline">Stai modificando: <span id="oldTitle" class="no-underline">'. $recipe["titolo"] .'</span></p>
+                </div>';
             }
             ?>
             <!-- <input type="submit" name="delete" value="Elimina ricetta" class="border-2 border-red-700 text-red-700 bg-white px-3 py-2 rounded-md font-semibold cursor-pointer" /> -->
