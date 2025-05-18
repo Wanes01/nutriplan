@@ -15,7 +15,18 @@ $params = [
     "footer" => "./footer/generic-footer.php"
 ];
 
-$recipes = $dbh->getRandomRecipes(DEFAULT_RECIPE_NUM);
+$recipes = isset($_POST['title'])
+    ? $dbh->filterRecipes(
+        $_POST['title'],
+        $_POST['minKcals'],
+        $_POST['maxKcals'],
+        $_POST['minPrice'],
+        $_POST['maxPrice'],
+        isset($_POST['accredited']),
+        $_POST['order'],
+        DEFAULT_RECIPE_NUM
+        )
+    : $dbh->filterRecipes("", "", "", "", "", "", "random", DEFAULT_RECIPE_NUM);
 
 require_once "./base.php";
 ?>

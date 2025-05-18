@@ -9,15 +9,54 @@ class DatabaseHelper {
         }        
     }
 
-    public function getRandomRecipes($limit) {
-        $stmt = $this->db->prepare("
+    public function filterRecipes($title, $minKcals, $maxKcals, $minPrice, $maxPrice, $accreditedOnly, $order, $limit) {
+        $query = "
             SELECT R.*, U.accreditato
             FROM ricette R, utenti U
-            WHERE R.nicknameEditore = U.nickname 
-            ORDER BY RAND()
-            LIMIT ?
-        ");
-        $stmt->bind_param("i", $limit);
+            WHERE R.nicknameEditore = U.nickname ";
+
+        $pTypes = "";
+        $params = array();
+
+        if ($title != "") {
+            $query .= "AND titolo LIKE ? ";
+            $pTypes .= "s";
+            array_push($params, "%" . $title . "%");
+        }
+
+        $query .= "AND kcalTotali / porzioni BETWEEN ? AND ? ";
+        $query .= "AND costoTotale / porzioni BETWEEN ? AND ? ";
+        $pTypes .= "dddd";
+        array_push(
+            $params,
+            $minKcals == "" ? "0" : $minKcals,
+            $maxKcals == "" ? "99999" : $maxKcals,
+            $minPrice == "" ? "0" : $minPrice,
+            $maxPrice == "" ? "99999" : $maxPrice,
+        );
+        
+        if ($accreditedOnly) {
+            $query .= "AND U.accreditato = 1 ";
+        }
+
+        $query .= "ORDER BY ";
+        switch ($order) {
+            case "incrKcal":
+                $query .= "kcalTotali / porzioni ASC ";
+                break;
+            case "decrKcal":
+                $query .= "kcalTotali / porzioni DESC ";
+                break;
+            case "random":
+                $query .= "RAND() ";
+                break;
+        }
+        $query .= "LIMIT ?";
+        $pTypes .= "i";
+        array_push($params, $limit);
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param($pTypes, ...$params);
         $stmt->execute();
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
