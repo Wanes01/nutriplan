@@ -9,6 +9,43 @@ class DatabaseHelper {
         }        
     }
 
+    public function registerViolation($adminNickname, $reason, $evaluator, $title, $editor) {
+        $this->db->begin_transaction();
+        try {
+            // -- 1. Nasconde la valutazione solo se questa ha un commento associato
+            $stmt1 = $this->db->prepare("
+                UPDATE valutazioni
+                SET nascosta = 1
+                WHERE nicknameValutatore = ?
+                AND titolo = ?
+                AND nicknameEditore = ?
+                AND commento IS NOT NULL;"
+            );
+            $stmt1->bind_param("sss", $evaluator, $title, $editor);
+            $stmt1->execute();
+            $stmt1->close();
+
+            // -- 2. Inserisce l’infrazione SOLO se la valutazione risulta nascosta (quindi solo se la query precedente ha prodotto un effetto)
+            $stmt2 = $this->db->prepare("
+                INSERT INTO infrazioni (nicknameAmministratore, nicknameValutatore, titolo, nicknameEditore, motivazione, dataOra)
+                    SELECT ?, ?, ?, ?, ?, NOW()
+                    FROM valutazioni
+                    WHERE nicknameValutatore = ?
+                    AND titolo = ?
+                    AND nicknameEditore = ?
+                    AND commento IS NOT NULL
+                    AND nascosta = 1;
+            ");
+            $stmt2->bind_param("ssssssss", $adminNickname, $evaluator, $title, $editor, $reason, $evaluator, $title, $editor);
+            $stmt2->execute();
+            $stmt2->close();
+            
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+        }
+    }
+
     public function getRecipeComments($nickname, $title) {
         $stmt = $this->db->prepare("
             SELECT nicknameValutatore, dataOra, voto, commento

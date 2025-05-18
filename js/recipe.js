@@ -1,10 +1,10 @@
-const commentSubmit = document.querySelector('input[type="submit"]');
+const commentSubmit = document.getElementById("publishEvaluation");
 
 // l'utente puó aggiungere un commento
 if (commentSubmit) {
     commentSubmit.addEventListener('click', function(e) {
         e.preventDefault();
-        const form = document.querySelector("form");
+        const form = commentSubmit.parentElement;
         const titleIn = document.createElement("input");
         titleIn.type = "text";
         titleIn.name = "title";
@@ -20,3 +20,4 @@ if (commentSubmit) {
         editorIn.remove();
     });
 }
+

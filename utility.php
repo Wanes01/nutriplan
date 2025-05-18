@@ -38,5 +38,14 @@ function normalizeToIdentifier($string) {
     return $string;
 }
 
+function hasUserCommented($comments, $nickname) {
+    foreach ($comments as $comm) {
+        if ($comm['nicknameValutatore'] == $nickname) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 ?>

@@ -19,7 +19,7 @@ $params = [
     "main" => "./main/recipe-main.php",
     "header" => "./header/" . $_SESSION['role'] . "-header.php",
     "footer" => "./footer/generic-footer.php",
-    "js" => array("comment-submit.js")
+    "js" => array("recipe.js")
 ];
 
 $comments = $dbh->getRecipeComments($editorNickname, $title);
