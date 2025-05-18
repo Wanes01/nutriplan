@@ -9,11 +9,49 @@ class DatabaseHelper {
         }        
     }
 
+    public function getRecipeComments($nickname, $title) {
+        $stmt = $this->db->prepare("
+            SELECT nicknameValutatore, dataOra, voto, commento
+            FROM valutazioni
+            WHERE nascosta = 0
+            AND titolo = ?
+            AND nicknameEditore = ?
+        ");
+        $stmt->bind_param("ss", $title, $nickname);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function addEvaluation($title, $editor, $evaluator, $vote, $comment) {
+        $stmt = $this->db->prepare("
+            INSERT INTO valutazioni (titolo, nicknameEditore, nicknameValutatore, voto, commento, dataOra, nascosta)
+            VALUES (?, ?, ?, ?, ?, NOW(), 0)
+        ");
+
+        $cm = $comment == "" ? NULL : $comment;
+
+        $stmt->bind_param(
+            "sssis",
+            $title,
+            $editor,
+            $evaluator,
+            $vote,
+            $cm
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Hai giá inserito un commento per questa ricetta!");
+        }
+
+        $stmt->close();
+    }
+
     public function filterRecipes($title, $minKcals, $maxKcals, $minPrice, $maxPrice, $accreditedOnly, $order, $limit) {
         $query = "
             SELECT R.*, U.accreditato
             FROM ricette R, utenti U
-            WHERE R.nicknameEditore = U.nickname ";
+            WHERE R.nicknameEditore = U.nickname
+            AND pubblica = 1 ";
 
         $pTypes = "";
         $params = array();
@@ -94,7 +132,7 @@ class DatabaseHelper {
 
             // Non é avvenuta nessuna eliminazione
             if ($stmt2->affected_rows == 0) {
-                throw new Exception("Non é possibile eliminare una ricetta che ha ricevuto comementi.");
+                throw new Exception("Non é possibile eliminare una ricetta che ha ricevuto commenti.");
             }
             $stmt2->close();
 

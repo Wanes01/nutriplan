@@ -1,7 +1,7 @@
 <?php
 require_once "../bootstrap.php";
 
-define("DEFAULT_RECIPE_NUM", 10);
+define("LOADED_RECIPES", 10);
 
 // utente NON loggato, redirect alla pagina di benvenuto
 if (!isset($_SESSION['nickname'])) {
@@ -24,9 +24,9 @@ $recipes = isset($_POST['title'])
         $_POST['maxPrice'],
         isset($_POST['accredited']),
         $_POST['order'],
-        DEFAULT_RECIPE_NUM
+        LOADED_RECIPES
         )
-    : $dbh->filterRecipes("", "", "", "", "", "", "random", DEFAULT_RECIPE_NUM);
+    : $dbh->filterRecipes("", "", "", "", "", "", "random", LOADED_RECIPES);
 
 require_once "./base.php";
 ?>

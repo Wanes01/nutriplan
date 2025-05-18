@@ -232,6 +232,9 @@
   .mt-3 {
     margin-top: calc(var(--spacing) * 3);
   }
+  .mt-4 {
+    margin-top: calc(var(--spacing) * 4);
+  }
   .mt-5 {
     margin-top: calc(var(--spacing) * 5);
   }
@@ -502,6 +505,9 @@
   .grid-cols-9 {
     grid-template-columns: repeat(9, minmax(0, 1fr));
   }
+  .grid-rows-7 {
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+  }
   .flex-col {
     flex-direction: column;
   }
@@ -550,6 +556,9 @@
   .gap-30 {
     gap: calc(var(--spacing) * 30);
   }
+  .gap-x-3 {
+    column-gap: calc(var(--spacing) * 3);
+  }
   .divide-x-2 {
     :where(& > :not(:last-child)) {
       --tw-divide-x-reverse: 0;
@@ -576,6 +585,9 @@
     :where(& > :not(:last-child)) {
       border-color: var(--color-gray-400);
     }
+  }
+  .self-center {
+    align-self: center;
   }
   .overflow-hidden {
     overflow: hidden;

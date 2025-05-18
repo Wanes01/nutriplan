@@ -41,9 +41,9 @@
             <input type="submit" value="Cerca ricette" class="mx-10 mt-5 py-1 px-5 border-2 border-legno rounded-full text-orange-900 font-semibold bg-white cursor-pointer" />
         </form>
     </div>
-    <div class="basis-2/3 grid grid-cols-3">
+    <div class="basis-2/3 grid grid-cols-3 gap-3 px-2 grid-rows-7">
     <?php foreach ($recipes as $rec): ?>
-        <div class="flex flex-row p-3 border-1 border-legno shadow shadow-gray-300 rounded-md h-30 gap-5 bg-crema">
+        <div class="flex flex-row p-3 border-1 border-legno shadow shadow-gray-300 rounded-md gap-5 bg-crema">
             <div class="flex flex-col">
                 <p class="font-bold"><?php echo $rec['titolo'] ?></p>
                 <p>di <span class="italic"><?php echo $rec['nicknameEditore'] ?></span>

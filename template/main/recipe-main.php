@@ -1,7 +1,7 @@
 <div class="flex flex-col justify-center mt-6">
     <div class="flex flex-col justify-between items-center gap-2">        
-        <h1 class="text-2xl font-bold"><?php echo $recipe['titolo'] ?></h1>
-        <p class="italic">Ricetta a cura di <?php echo $recipe['nicknameEditore'] ?></p>
+        <h1 class="text-2xl font-bold" id="title"><?php echo $recipe['titolo'] ?></h1>
+        <p class="italic">Ricetta a cura di <span id="editor"><?php echo $recipe['nicknameEditore'] ?></span></p>
         <?php
         if ($recipe['accreditato'] == 1) {
             echo '<p class="py-1 px-2 text-[0.9rem] bg-green-200 border-1 border-gray-400 shadow shadow-gray-400 rounded-xl font-semibold">UTENTE ACCREDITATO ✔️</p>';
@@ -27,5 +27,42 @@
                 <p><?php echo $recipe['preparazione']?></p>
             </div>
         </div>
+        <h2 class="font-bold text-lg mt-5 underline">Commenti</h2>
+        <p class="w-2/3 text-center italic"><span class="underline">Nota sui commenti</span>: non é possibile commentare una propria ricetta o commentare una ricetta piú di una volta. Un utente che ha subito una limitazione viene momentaneamente rimosso dalla possibilitá di commentare.</p>
+        <?php
+        // AGGIUNGERE CHECK PER COMMENTO GIAà REGISTRATO
+        if ($_SESSION['nickname'] != $recipe['nicknameEditore']
+        && $_SESSION['fineLimitazione'] == NULL) {
+            echo '
+            <form action="' . ROOT . 'api/add-comment.php' . '" method="post" class="flex flex-col gap-1 w-1/2 p-3 border-1 rounded-md">
+            <h3 class="font-semibold text-center">Inserisci una valutazione</h3>
+            <div class="flex flex-row gap-1 items-center">
+                <label for="vote">Voto</label>
+                <input type="number" name="vote" min="1" max="5" id="vote" required class="p-1 border-1 rounded-md"/>
+                <p>/5</p>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label for="comment">Commento (opzionale)</label>
+                <textarea name="comment" id="comment" class="border-1 rounded-md p-1 resize-none h-40 overflow-y-scroll"></textarea>
+            </div>
+            <input type="submit" value="Aggiungi commento" class="mt-4 border-2 border-legno bg-crema font-semibold text-orange-900 cursor-pointer px-3 py-1 rounded-md w-1/3 self-center" />
+        </form>';
+        }
+        if (isset($_SESSION['commentError'])) {
+            echo '<p class="text-center text-red-700">Non puoi commentare due volte la stessa ricetta!</p>';
+            unset($_SESSION['commentError']);
+        }
+
+        foreach ($comments as $comm):
+        ?>
+        <div class="flex flex-col border-1 rounded-md p-2">
+            <p>Valutazione di <span class="underline italic"><?php echo $comm['nicknameValutatore'] ?></span> | Voto: <?php echo str_repeat("⭐", $comm['voto']) ?></p>
+            <?php
+            if ($comm['commento']) {
+                echo '<p><span class="underline">Commento:</span> ' . $comm['commento'] . '</p>';
+            }
+            ?>
+        </div>
+        <?php endforeach; ?>
     </div>
 </div>

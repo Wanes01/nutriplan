@@ -6,6 +6,10 @@ if (!isset($_SESSION['nickname'])) {
     header("Location: " . ROOT . "index.php");
 }
 
+if ($_SESSION['role'] == 'utenti') {
+    header("Location: " . ROOT . "template/recipe-search.php");
+}
+
 $params = [
     "title" => "Home | NutriPlan",
     "main" => "./main/" . $_SESSION['role'] . "-home-main.php",
