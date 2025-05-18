@@ -9,6 +9,57 @@ class DatabaseHelper {
         }        
     }
 
+    public function updateAccreditedUsers() {
+        $this->db->begin_transaction();
+        try {
+
+            $this->db->query("
+                CREATE TEMPORARY TABLE accreditabili AS
+                    SELECT R.nicknameEditore
+                    FROM ricette R
+                    LEFT JOIN valutazioni V -- delle ricette potrebbero NON avere valutazioni
+                    ON R.titolo = V.titolo
+                    AND R.nicknameEditore = V.nicknameEditore
+                    GROUP BY R.nicknameEditore
+                    HAVING COUNT(R.titolo) >= 10 AND AVG(V.voto) > 4"
+            );
+
+            // -- 1. Gli utenti che hanno i requisiti vengono accreditati
+            $this->db->query("
+                UPDATE utenti
+                SET accreditato = 1
+                WHERE nickname IN (SELECT nicknameEditore FROM accreditabili)"
+            );
+
+            // -- 2. Gli utenti senza i requisiti tornano/rimangono non accreditati
+            $this->db->query("
+                UPDATE utenti
+                SET accreditato = 0
+                WHERE nickname NOT IN (SELECT nicknameEditore FROM accreditabili)"
+            );
+
+            $this->db->query("DROP TEMPORARY TABLE accreditabili");
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+        }
+    }
+
+    public function updateRestrictions() {
+        $this->db->query("
+            UPDATE utenti
+            SET fineLimitazione = NOW() + INTERVAL 1 MONTH
+            WHERE fineLimitazione IS NULL
+            AND nickname IN (
+                SELECT nicknameValutatore
+                FROM infrazioni
+                WHERE dataOra BETWEEN NOW() - INTERVAL 1 MONTH AND NOW()
+                GROUP BY nicknameValutatore
+                HAVING COUNT(*) >= 5
+            )
+        ");
+    }
+
     public function registerViolation($adminNickname, $reason, $evaluator, $title, $editor) {
         $this->db->begin_transaction();
         try {

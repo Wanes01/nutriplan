@@ -7,11 +7,10 @@ if (!isset($_SESSION['nickname'])) {
 }
 
 $params = [
-    "title" => "Le tue ricette | NutriPlan",
-    "main" => "./main/my-recipes-main.php",
+    "title" => "Le tue diete | NutriPlan",
+    "main" => "./main/my-diets-main.php",
     "header" => "./header/" . $_SESSION['role'] . "-header.php",
-    "footer" => "./footer/generic-footer.php",
-    "recipes" => $dbh->getUserRecipes($_SESSION["nickname"])
+    "footer" => "./footer/generic-footer.php"
 ];
 
 require_once "./base.php";

@@ -1,4 +1,4 @@
-<div class="flex flex-col justify-center mt-6">
+<div class="flex flex-col justify-center mt-6 min-h-screen">
     <div class="flex flex-col justify-between items-center gap-2">        
         <h1 class="text-2xl font-bold" id="title"><?php echo $recipe['titolo'] ?></h1>
         <p class="italic">Ricetta a cura di <span id="editor"><?php echo $recipe['nicknameEditore'] ?></span></p>
