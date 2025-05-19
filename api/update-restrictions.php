@@ -8,5 +8,5 @@ if (!isset($_SESSION["nickname"]) || $_SESSION["role"] != "amministratori") {
 
 $dbh->updateRestrictions();
 
-header("Location: " . ROOT . "template/home.php");
+header("Location: " . $_SERVER['HTTP_REFERER']);
 ?>

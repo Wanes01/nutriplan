@@ -27,6 +27,18 @@
                 <p><?php echo $recipe['preparazione']?></p>
             </div>
         </div>
+        <?php if ($_SESSION['role'] == 'utenti' && !empty($diets)): ?>
+            <form action="<?php echo ROOT . "api/diet-crud.php" ?>" method="post" class="flex flex-col gap-1">
+                <select name="toInclude" class="p-1 border-1 rounded-md">
+                <?php foreach ($diets as $diet): ?>
+                    <option value="<?php echo $diet['nome'] ?>"><?php echo $diet['nome'] ?></option>
+                <?php endforeach; ?>
+                </select>
+                <input type="text" name="title" id="" value="<?php echo $recipe['titolo'] ?>" class="hidden" />
+                <input type="text" name="editor" id="" value="<?php echo $recipe['nicknameEditore'] ?>" class="hidden" />
+                <input type="submit" name="update" value="Aggiungi alla dieta" class="cursor-pointer p-1 border-2 border-oliva text-oliva font-semibold rounded-md">
+            </form>
+        <?php endif ?>
         <h2 class="font-bold text-lg mt-5 underline">Commenti</h2>
         <p class="w-2/3 text-center italic"><span class="underline">Nota sui commenti</span>: non é possibile commentare una propria ricetta o commentare una ricetta piú di una volta. Un utente che ha subito una limitazione viene momentaneamente rimosso dalla possibilitá di commentare.</p>
         <?php

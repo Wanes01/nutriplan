@@ -7,12 +7,19 @@ if (!isset($_SESSION['nickname'])) {
 }
 
 $params = [
-    "title" => "Le tue diete | NutriPlan",
-    "main" => "./main/my-diets-main.php",
+    "title" => "Dieta | NutriPlan",
+    "main" => "./main/diet-crud-main.php",
     "header" => "./header/" . $_SESSION['role'] . "-header.php",
     "footer" => "./footer/generic-footer.php",
-    "diets" => $dbh->getUserDiets($_SESSION['nickname'])
+    // "ingredients" => $dbh->getIngredients()
+    // "js" => array("recipe-crud.js")
 ];
+
+/*
+if (isset($_GET["title"])) {
+    $params["recipeData"] = $dbh->getRecipeData($_SESSION['nickname'], $_GET['title']);
+}
+*/
 
 require_once "./base.php";
 ?>

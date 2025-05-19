@@ -24,5 +24,9 @@ $params = [
 
 $comments = $dbh->getRecipeComments($editorNickname, $title);
 
+if ($_SESSION['role'] == 'utenti') {
+    $diets = $dbh->getUserDietsOnRecipeNotIncluded($title, $editorNickname, $_SESSION['nickname']);
+}
+
 require_once "./base.php";
 ?>

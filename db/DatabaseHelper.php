@@ -9,6 +9,156 @@ class DatabaseHelper {
         }        
     }
 
+    public function deleteDiet($dietName, $author) {
+        $stmt = $this->db->prepare("
+            DELETE FROM diete
+            WHERE nome = ?
+            AND nicknameAutore = ?
+        ");
+        $stmt->bind_param("ss", $dietName, $author);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    public function removeRecipeFromDiet($dietName, $author, $title, $editor) {
+        $this->db->begin_transaction();
+        try {
+            // Eliminazione della ricetta nella dieta 
+            $stmt1 = $this->db->prepare("
+                DELETE FROM composizioni
+                WHERE nomeDieta = ?
+                AND nicknameAutore = ?
+                AND titolo = ?
+                AND nicknameEditore = ?;
+            ");
+            $stmt1->bind_param("ssss", $dietName, $author, $title, $editor);
+            $stmt1->execute();
+            $stmt1->close();
+
+            // Ricalcolo delle calorie nella dieta
+            $stmt2 = $this->db->prepare("
+                UPDATE diete D
+                SET kcalDieta = (
+                    SELECT SUM(R.kcalTotali / R.porzioni)
+                    FROM ricette R, composizioni C
+                    WHERE R.titolo = C.titolo
+                    AND R.nicknameEditore = C.nicknameEditore
+                    AND C.nomeDieta = D.nome
+                    AND C.nicknameAutore = D.nicknameAutore
+                )
+                WHERE D.nome = ?
+                AND D.nicknameAutore = ?;
+            ");
+            $stmt2->bind_param("ss", $dietName, $author);
+            $stmt2->execute();
+            $stmt2->close();
+
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+        }
+    }
+
+    public function getDietaData($nickname, $dietName) {
+        $stmt = $this->db->prepare("
+            SELECT nome, kcalDieta
+            FROM diete
+            WHERE nicknameAutore = ?
+            AND nome = ?"
+        );
+        $stmt->bind_param("ss", $nickname, $dietName);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC)[0];
+    }
+
+    public function getDietRecipes($dietName, $author) {
+        $stmt = $this->db->prepare("
+            SELECT titolo, nicknameEditore
+            FROM composizioni
+            WHERE nomeDieta = ?
+            AND nicknameAutore = ?"
+        );
+        $stmt->bind_param("ss", $dietName, $author);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function addToDiet($title, $editor, $author, $dietName) {
+        $this->db->begin_transaction();
+        try {
+            // -- 2. Associazione delle ricette alla dieta (dieta giá creata)
+            $stmt1 = $this->db->prepare("
+                INSERT INTO composizioni (nomeDieta, nicknameAutore, titolo, nicknameEditore)
+                VALUES (?, ?, ?, ?)"
+            );
+            $stmt1->bind_param("ssss", $dietName, $author, $title, $editor);
+            $stmt1->execute();
+            $stmt1->close();
+
+            // -- 3. Calcolo dell'etichetta in base alle kcal totali per porzione
+            $stmt2 = $this->db->prepare("
+                UPDATE diete
+                SET kcalDieta = (
+                    SELECT SUM(R.kcalTotali / R.porzioni)
+                    FROM ricette R, composizioni C
+                    WHERE R.titolo = C.titolo
+                    AND R.nicknameEditore = C.nicknameEditore
+                    AND C.nomeDieta = ?
+                    AND C.nicknameAutore = ?
+                )
+                WHERE nome = ? AND nicknameAutore = ?"
+            );
+            $stmt2->bind_param("ssss", $dietName, $author, $dietName, $author);
+            $stmt2->execute();
+            $stmt2->close();
+
+            $this->db->commit();
+        } catch (Exception $e) {
+            $this->db->rollback();
+        }
+    }
+
+    public function getUserDietsOnRecipeNotIncluded($title, $editor, $author) {
+        $stmt = $this->db->prepare("
+            SELECT nome
+            FROM diete D
+            WHERE D.nicknameAutore = ?
+            AND NOT EXISTS (
+                SELECT *
+                FROM composizioni C
+                WHERE C.nomeDieta = D.nome
+                AND C.nicknameAutore = D.nicknameAutore
+                AND C.titolo = ?
+                AND C.nicknameEditore = ?
+            )"
+        );
+        $stmt->bind_param("sss", $author, $title, $editor);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function getUserDiets($nickname) {
+        $stmt = $this->db->prepare("
+            SELECT nome, kcalDieta
+            FROM diete
+            WHERE nicknameAutore = ?"
+        );
+        $stmt->bind_param("s", $nickname);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function addDiet($nickname, $dietName) {
+        $stmt = $this->db->prepare("
+            INSERT INTO diete (nome, nicknameAutore, kcalDieta)
+            VALUES (?, ?, 0);
+        ");
+        $stmt->bind_param("ss", $dietName, $nickname);
+        if (!$stmt->execute()) {
+            throw new Exception("Hai giá registrato una ricetta con questo nome!");
+        }
+    }
+
     public function updateAccreditedUsers() {
         $this->db->begin_transaction();
         try {
@@ -597,12 +747,16 @@ class DatabaseHelper {
     }
 
     /* Imposta le variabili di sessione relative all'utente o lancia una eccezione
-    con il problema riscontrato durante il login */
+    con il problema riscontrato durante il login.
+    Rimuove la limitazione utente se questa é scaduta */
     public function login($nickname, $password) {
         $role = $this->nicknameRole($nickname);
         if (!$role) {
             throw new Exception("Nickname inesistente");
         }
+
+        $this->updateUserRestriction($nickname);
+
         $personData = $this->getPersonData($role, $nickname, $password);
         if (!$personData) {
             throw new Exception("Password errata");
@@ -618,6 +772,18 @@ class DatabaseHelper {
             $_SESSION["accreditato"] = $personData["accreditato"] == 1;
             $_SESSION["fineLimitazione"] = $personData["fineLimitazione"];
         }
+    }
+
+    private function updateUserRestriction($nickname) {
+        $stmt = $this->db->prepare("
+            UPDATE utenti
+            SET fineLimitazione = NULL
+            WHERE nickname = ?
+            AND fineLimitazione < NOW();
+        ");
+        $stmt->bind_param("s", $nickname);
+        $stmt->execute();
+        $stmt->close();
     }
 
     public function getIngredients() {

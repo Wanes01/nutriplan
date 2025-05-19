@@ -8,5 +8,5 @@ if (!isset($_SESSION["nickname"]) || $_SESSION["role"] != "amministratori") {
 
 $dbh->updateAccreditedUsers();
 
-header("Location: " . ROOT . "template/home.php");
+header("Location: " . $_SERVER['HTTP_REFERER']);
 ?>

@@ -20,7 +20,7 @@
                     <p><?php echo "€" . $recipe["costoTotale"]?></p>
                 </div>
                 <div class="flex flex-row gap-3">
-                    <a href="<?php echo ROOT . "api/recipe-crud.php?del=&title=" . $recipe["titolo"] ?>" class="border-2 border-red-900 text-red-900 font-semibold rounded-md bg-white py-3 px-2">Elimina ✖️</a>
+                    <a href="<?php echo ROOT . "api/recipe-crud.php?del=&title=" . rawurlencode($recipe["titolo"]) ?>" class="border-2 border-red-900 text-red-900 font-semibold rounded-md bg-white py-3 px-2">Elimina ✖️</a>
                     <a href="<?php echo ROOT . "template/recipe-crud.php?action=update&title=" . rawurlencode($recipe["titolo"]) ?>" class="border-2 border-legno text-orange-900 font-semibold rounded-md bg-white py-3 px-2">Modifica ✏️</a>
                     <a href="<?php echo ROOT . "template/recipe.php?title=" . rawurlencode($recipe["titolo"]) . "&nickname=" . rawurlencode($_SESSION['nickname']) ?>" class="border-2 border-blue-900 text-blue-900 font-semibold rounded-md bg-white py-3 px-2">Visualizza ➡️</a>
                 </div>
