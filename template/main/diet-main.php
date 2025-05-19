@@ -4,6 +4,8 @@
     <ul class="flex flex-col gap-3">
     <?php if (empty($recipes)): ?>
         <p class="text-oliva font-semibold italic">Non hai ancora inserito alcuna ricetta in questa dieta!</p>
+    <?php else: ?>
+        <p class="italic text-legno text-center">La dieta risulta: <span class="font-semibold"><?php echo computeTag($diet['kcalDieta']) ?></span></p>
     <?php endif; ?>
     <?php foreach($recipes as $rec): ?>
         <li class="flex flex-row items-center p-3 border-2 border-legno rounded-md bg-crema gap-3">

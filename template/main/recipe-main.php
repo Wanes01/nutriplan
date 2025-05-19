@@ -7,7 +7,7 @@
             echo '<p class="py-1 px-2 text-[0.9rem] bg-green-200 border-1 border-gray-400 shadow shadow-gray-400 rounded-xl font-semibold">UTENTE ACCREDITATO ✔️</p>';
         }
         ?>
-        <div class="flex flex-col items-center justify-center border-1 px-10 py-2 rounded-lg w-3/4 bg-crema gap-5">
+        <div class="flex flex-col items-center justify-center border-1 px-10 py-2 rounded-lg w-1/2 bg-crema gap-5">
             <h2 class="text-lg font-bold underline text-center">Ingredienti ed informazioni</h2>
             <div class="grid grid-cols-2 gap-5 place-items-center">
                 <div class="flex flex-col gap-3">
@@ -16,9 +16,9 @@
                     <p><span class="font-semibold">Apporto calorico:</span> <?php echo number_format($recipe["kcalTotali"] / $recipe["porzioni"], 2) ?> kcal per porzione (<?php echo $recipe["kcalTotali"] ?> kcal totali) </p>
                     <p><span class="font-semibold">Costo stimato:</span> €<?php echo number_format($recipe["costoTotale"] / $recipe["porzioni"], 2) ?> per porzione (€<?php echo $recipe["costoTotale"] ?> totali) </p>
                 </div>
-                <ul class="list-disc list-inside flex flex-col gap-1">
+                <ul class="flex flex-col border-1 rounded-md bg-white p-3 divide-y-1 divide-legno">
                     <?php foreach ($ingredients as $ingr): ?>
-                        <li><?php echo $ingr['nomeIngrediente'] . " ➡️ " . $ingr['quantita'] . $ingr['unitaMisura']?></li>
+                        <li class="py-2"><?php echo $ingr['nomeIngrediente'] . " ➡️ " . $ingr['quantita'] . $ingr['unitaMisura']?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>

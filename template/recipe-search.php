@@ -1,7 +1,7 @@
 <?php
 require_once "../bootstrap.php";
 
-define("LOADED_RECIPES", 10);
+define("LOADED_RECIPES", 30);
 
 // utente NON loggato, redirect alla pagina di benvenuto
 if (!isset($_SESSION['nickname'])) {

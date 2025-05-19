@@ -1,5 +1,5 @@
-<div class="flex flex-row mt-3 gap-3">
-    <div class="basis-1/3 flex flex-col rounded-r-2xl h-screen bg-orange-200 p-5 border-2 border-legno">
+<div class="min-h-screen flex flex-row mt-3 gap-3">
+    <div class="basis-1/3 flex flex-col rounded-r-2xl bg-orange-200 p-5 border-2 border-legno">
         <form action="#" method="post" class="flex flex-col gap-3">
             <div class="flex flex-col gap-1">
                 <label for="titolo">Titolo</label>
@@ -43,7 +43,7 @@
     </div>
     <div class="basis-2/3 grid grid-cols-3 gap-3 px-2 grid-rows-7">
     <?php foreach ($recipes as $rec): ?>
-        <div class="flex flex-row p-3 border-1 border-legno shadow shadow-gray-300 rounded-md gap-5 bg-crema">
+        <div class="flex flex-row p-3 border-1 border-legno shadow shadow-gray-300 rounded-md gap-2 bg-crema">
             <div class="flex flex-col">
                 <p class="font-bold"><?php echo $rec['titolo'] ?></p>
                 <p>di <span class="italic"><?php echo $rec['nicknameEditore'] ?></span>
@@ -56,7 +56,7 @@
                 <p><?php echo number_format($rec["kcalTotali"] / $rec["porzioni"], 2) ?> kcal/porzione</p>
                 <p>€<?php echo number_format($rec["costoTotale"] / $rec["porzioni"], 2) ?>/porzione</p>
             </div>
-            <a href="<?php echo ROOT . "template/recipe.php?title=" . rawurlencode($rec["titolo"]) . "&nickname=" . rawurlencode($rec['nicknameEditore']) ?>" class="border-2 border-legno text-orange-900 font-semibold flex-1 flex flex-col items-center justify-center rounded-md bg-white">Visualizza<span>➡️</span></a>
+            <a href="<?php echo ROOT . "template/recipe.php?title=" . rawurlencode($rec["titolo"]) . "&nickname=" . rawurlencode($rec['nicknameEditore']) ?>" class="border-2 border-legno text-orange-900 font-semibold flex-1 flex flex-col items-center justify-center rounded-md bg-white px-2">Visualizza<span>➡️</span></a>
         </div>
     <?php endforeach; ?>
     </div>

@@ -47,5 +47,15 @@ function hasUserCommented($comments, $nickname) {
     return false;
 }
 
+function computeTag($dietKcals) {
+    if ($dietKcals < 1800) {
+        return "ipocalorica";
+    } else if (1800 <= $dietKcals && $dietKcals <= 2300) {
+        return "bilanciata";
+    } else {
+        return "ipercalorica";
+    }
+}
+
 
 ?>
