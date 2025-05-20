@@ -4,15 +4,15 @@
     <ul class="flex flex-col rounded-md overflow-hidden gap-3">
         <?php foreach ($params["diets"] as $diet): ?>
             <li class="flex flex-row items-center justify-center gap-20 p-3 border-2 border-legno bg-crema overflow-hidden rounded-md">
-                <div class="flex flex-col items-center justify-center">
+                <div class="flex flex-col items-center justify-center basis-1/3">
                     <p class="underline font-semibold">Nome</p>
                     <p><?php echo $diet["nome"] ?></p>
                 </div>
-                <div class="flex flex-col items-center justify-center">
+                <div class="flex flex-col items-center justify-center basis-1/3">
                     <p class="underline font-semibold">KCAL Totali</p>
                     <p><?php echo $diet["kcalDieta"] . " kcals" ?></p>
                 </div>
-                <div class="flex flex-row gap-3">
+                <div class="flex flex-row gap-3 flex-1 justify-end text-center">
                     <a href="<?php echo ROOT . "api/diet-crud.php?delete=&name=" . rawurlencode($diet["nome"]) ?>" class="border-2 border-red-900 text-red-900 font-semibold rounded-md bg-white py-3 px-2">Elimina ✖️</a>
                     <a href="<?php echo ROOT . "template/diet.php?name=" . rawurlencode($diet["nome"]) ?>" class="border-2 border-blue-900 text-blue-900 font-semibold rounded-md bg-white py-3 px-2">Visualizza ➡️</a>
                 </div>
